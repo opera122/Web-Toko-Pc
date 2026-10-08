@@ -25,6 +25,9 @@ export type ParsedProduct = {
 
 const MAX_INT = 2_000_000_000 // batas aman kolom INT MySQL (signed 32-bit)
 
+// Domain gambar eksternal yang diizinkan (harus sinkron dengan images.remotePatterns di next.config.ts).
+export const ALLOWED_IMAGE_HOSTS: readonly string[] = ['picsum.photos']
+
 function toInteger(value: unknown): number | null {
   const number = typeof value === 'string' && value.trim() !== '' ? Number(value) : value
   return typeof number === 'number' && Number.isInteger(number) ? number : null
@@ -55,9 +58,24 @@ export function parseProductInput(body: unknown): { data: ParsedProduct } | { er
   const status = text(input.status)
   if (!(PRODUCT_STATUSES as readonly string[]).includes(status)) return { error: 'Status produk tidak valid.' }
 
+  // Gambar boleh: (a) path lokal di folder public, atau (b) URL https dari domain yang diizinkan.
   const imageUrl = text(input.imageUrl)
-  if (imageUrl && (imageUrl.length > 191 || !/^\/[A-Za-z0-9/_.-]+$/.test(imageUrl) || imageUrl.includes('..') || imageUrl.startsWith('//'))) {
-    return { error: 'Gambar harus berupa path di folder public, contoh /products/vga.svg.' }
+  if (imageUrl && imageUrl.length > 191) {
+    return { error: 'Alamat gambar terlalu panjang (maks. 191 karakter).' }
+  }
+  if (imageUrl && imageUrl.startsWith('https://')) {
+    let host = ''
+    try {
+      host = new URL(imageUrl).hostname
+    } catch {
+      return { error: 'Alamat gambar tidak valid.' }
+    }
+    if (!ALLOWED_IMAGE_HOSTS.includes(host)) {
+      return { error: `Host gambar harus salah satu dari: ${ALLOWED_IMAGE_HOSTS.join(', ')}.` }
+    }
+  } else if (imageUrl && (imageUrl.includes('..') || imageUrl.startsWith('//') || !/^\/[A-Za-z0-9/_.-]+$/.test(imageUrl))) {
+    // Path lokal: diawali "/" tunggal, tanpa "..", tanpa "//" (protocol-relative).
+    return { error: 'Gambar harus path lokal (contoh /products/vga.svg) atau URL https dari domain yang diizinkan.' }
   }
 
   const specs: Record<string, string> = {}
