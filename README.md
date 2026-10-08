@@ -8,7 +8,7 @@ Toko komponen PC berbasis Next.js 16 (App Router), React 19, Tailwind CSS 4, dan
 - Keranjang (tersimpan di browser) dan checkout. **Checkout tamu tetap diizinkan**; bila pembeli login, pesanan otomatis masuk ke akunnya.
 - Pembayaran masih **simulasi** (`app/api/orders/pay`), belum terhubung ke payment gateway.
 - **Daftar & masuk pembeli** (`/daftar`, `/masuk`), halaman akun dengan riwayat pesanan (`/akun`).
-- **Panel admin** (`/admin`): ringkasan, kelola produk (tambah/ubah/nonaktifkan/hapus), kelola pesanan (ubah status, stok otomatis kembali saat dibatalkan), daftar pengguna.
+- **Panel admin** (`/admin`): ringkasan, kelola produk (tambah/ubah/nonaktifkan/hapus), kelola pesanan (ubah status, stok otomatis kembali saat dibatalkan), daftar pengguna (bisa mengangkat pembeli menjadi admin).
 
 ## Menjalankan
 
@@ -28,7 +28,7 @@ ADMIN_EMAIL=admin@toko.id ADMIN_PASSWORD='Rahasia123' ADMIN_NAME='Admin Toko' np
 npm run dev                 # http://localhost:3000
 ```
 
-Di Windows PowerShell, set variabelnya dulu: `$env:ADMIN_EMAIL="admin@toko.id"; $env:ADMIN_PASSWORD="Rahasia123"; npm run admin:create`. Nilai-nilai itu juga boleh ditulis di `.env`. Admin hanya bisa dibuat lewat perintah ini, tidak lewat pendaftaran publik.
+Di Windows PowerShell, set variabelnya dulu: `$env:ADMIN_EMAIL="admin@toko.id"; $env:ADMIN_PASSWORD="Rahasia123"; npm run admin:create`. Nilai-nilai itu juga boleh ditulis di `.env`. Admin tidak bisa dibuat lewat pendaftaran publik — tetapi setelah ada minimal satu admin, akun pembeli lain dapat diangkat menjadi admin dari halaman **/admin/users** (tombol "Jadikan Admin"). Admin yang sedang masuk tidak bisa menurunkan perannya sendiri.
 
 Tes logika (validasi, status pesanan, token sesi, pembatas percobaan): `npm test`.
 
