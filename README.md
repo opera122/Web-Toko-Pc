@@ -14,8 +14,16 @@ Toko komponen PC berbasis Next.js 16 (App Router), React 19, Tailwind CSS 4, dan
 
 ```bash
 npm install
-cp .env.example .env        # lalu isi DATABASE_URL
+cp .env.example .env        # Windows: copy .env.example .env — lalu isi DATABASE_URL
 ```
+
+Bila muncul error `Environment variable not found: DATABASE_URL`, berarti file `.env` belum ada atau nama database-nya belum dibuat. Buat `.env` berisi satu baris, contoh untuk XAMPP standar:
+
+```
+DATABASE_URL="mysql://root:@localhost:3306/gilakomputer_db"
+```
+
+lalu buat database `gilakomputer_db` di phpMyAdmin dan jalankan ulang `npm run dev`.
 
 **Database.** Pilih salah satu sesuai kondisi Anda:
 
