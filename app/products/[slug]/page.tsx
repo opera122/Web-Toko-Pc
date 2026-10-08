@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import ProductDetailActions from '@/components/ProductDetailActions'
 import BrandMark from '@/components/BrandMark'
+import AccountMenu from '@/components/AccountMenu'
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>
@@ -13,13 +14,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params
   const product = await prisma.product.findUnique({ where: { slug }, include: { category: true } })
 
-  if (!product) notFound()
+  // Produk nonaktif disembunyikan dari publik (admin mengelolanya di /admin/products).
+  if (!product || product.status !== 'ACTIVE') notFound()
 
   const specs = product.specs as Record<string, string>
 
   return (
     <main className="catalog-page product-detail-page">
-      <nav className="site-nav page-width catalog-nav"><BrandMark /><Link href="/products" className="text-link">← Kembali ke katalog</Link></nav>
+      <nav className="site-nav page-width catalog-nav"><BrandMark /><div className="nav-right"><Link href="/products" className="text-link">← Kembali ke katalog</Link><AccountMenu /></div></nav>
       <div className="page-width product-detail-layout">
         <div className="product-detail-image">
           {product.imageUrl ? <Image src={product.imageUrl} alt={product.name} width={900} height={680} priority /> : <span>{product.category.name.slice(0, 1)}</span>}

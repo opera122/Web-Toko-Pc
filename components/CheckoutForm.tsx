@@ -7,7 +7,8 @@ import { paymentMethods, formatIDR, type PaymentCategory } from '@/lib/payment-m
 
 type CartItem = { id: string; name: string; category: string; price: number; quantity: number }
 type ShippingMethod = 'regular' | 'express'
-type PlacedOrder = { orderNumber: string; total: number; paymentMethodCode: string }
+type PlacedOrder = { orderNumber: string; total: number; paymentMethodCode: string; payToken?: string }
+type CheckoutUser = { name: string; email: string; phone: string | null }
 
 const CART_STORAGE_KEY = 'gila-komputer-cart'
 const shippingOptions: Record<ShippingMethod, { label: string; description: string; fee: number }> = {
@@ -25,7 +26,7 @@ const stepTitles = ['Data & Alamat', 'Kirim & Bayar', 'Konfirmasi']
 
 const formatPrice = (value: number) => `Rp ${value.toLocaleString('id-ID')}`
 
-export default function CheckoutForm() {
+export default function CheckoutForm({ user = null }: { user?: CheckoutUser | null }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [step, setStep] = useState(0)
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>('regular')
@@ -35,7 +36,7 @@ export default function CheckoutForm() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [order, setOrder] = useState<PlacedOrder | null>(null)
-  const [form, setForm] = useState({ customerName: '', email: '', phone: '', address: '', city: '', postalCode: '' })
+  const [form, setForm] = useState({ customerName: user?.name ?? '', email: user?.email ?? '', phone: user?.phone ?? '', address: '', city: '', postalCode: '' })
   const fieldsRef = useRef<HTMLDivElement>(null)
   const payRef = useRef<HTMLDivElement>(null)
 
@@ -117,12 +118,12 @@ export default function CheckoutForm() {
     setIsSubmitting(true)
     try {
       const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, shippingMethod, paymentMethod, items: items.map((item) => ({ productId: Number(item.id), quantity: item.quantity })) }) })
-      const result = await response.json() as { order?: { orderNumber: string; total: number; paymentMethod: string }; error?: string }
+      const result = await response.json() as { order?: { orderNumber: string; total: number; paymentMethod: string; payToken?: string }; error?: string }
       if (!response.ok || !result.order) throw new Error(result.error ?? 'Order tidak dapat dibuat.')
       window.localStorage.removeItem(CART_STORAGE_KEY)
       window.dispatchEvent(new CustomEvent('gila:cart-updated', { detail: { items: [] } }))
       setItems([])
-      const placed: PlacedOrder = { orderNumber: result.order.orderNumber, total: result.order.total, paymentMethodCode: result.order.paymentMethod ?? paymentMethod }
+      const placed: PlacedOrder = { orderNumber: result.order.orderNumber, total: result.order.total, paymentMethodCode: result.order.paymentMethod ?? paymentMethod, payToken: result.order.payToken }
       window.localStorage.setItem(PAYMENT_STORAGE_KEY, JSON.stringify(placed))
       setOrder(placed)
       window.scrollTo({ top: 0, behavior: 'smooth' })

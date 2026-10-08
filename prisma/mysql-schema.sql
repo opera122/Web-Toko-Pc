@@ -60,6 +60,31 @@ CREATE TABLE Inventory (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+-- Akun pembeli & admin
+CREATE TABLE `User` (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  name         VARCHAR(191) NOT NULL,
+  email        VARCHAR(191) NOT NULL UNIQUE,
+  phone        VARCHAR(191) NULL,
+  passwordHash VARCHAR(191) NOT NULL,
+  role         VARCHAR(191) NOT NULL DEFAULT 'PEMBELI',
+  createdAt    DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt    DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+
+  INDEX User_role_idx (role)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+-- Sesi login (id = hash SHA-256 dari token di cookie)
+CREATE TABLE `Session` (
+  id        VARCHAR(191) NOT NULL PRIMARY KEY,
+  userId    INT          NOT NULL,
+  expiresAt DATETIME(3)  NOT NULL,
+  createdAt DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+  INDEX Session_userId_idx (userId),
+  CONSTRAINT Session_userId_fkey FOREIGN KEY (userId) REFERENCES `User`(id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- Pesanan (checkout)
 CREATE TABLE `Order` (
   id             INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,11 +100,14 @@ CREATE TABLE `Order` (
   subtotal       INT          NOT NULL,
   total          INT          NOT NULL,
   status         VARCHAR(191) NOT NULL DEFAULT 'PENDING',
+  userId         INT          NULL,
+  payToken       VARCHAR(191) NULL UNIQUE,
   createdAt      DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   updatedAt      DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
   INDEX Order_email_idx (email),
-  INDEX Order_status_idx (status)
+  INDEX Order_status_idx (status),
+  CONSTRAINT Order_userId_fkey FOREIGN KEY (userId) REFERENCES `User`(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- Item dalam sebuah pesanan (snapshot nama & harga saat beli)
