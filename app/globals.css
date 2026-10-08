@@ -347,6 +347,8 @@ button.button:disabled, .auth-submit:disabled { cursor: wait; opacity: .6; trans
 .admin-field textarea { resize: vertical; }
 .admin-field small { color: var(--muted); font-size: .68rem; }
 .admin-field-row { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.admin-image-preview { border: 1px solid #3d493f; display: inline-block; margin-top: 10px; padding: 6px; width: fit-content; }
+.admin-image-preview img { display: block; height: auto; width: 240px; }
 .admin-spec-row { align-items: center; display: grid; gap: 10px; grid-template-columns: 1fr 1.4fr auto; }
 .admin-spec-row input { min-width: 0; }
 .admin-form-footer { align-items: center; display: flex; flex-wrap: wrap; gap: 18px; }
