@@ -24,3 +24,11 @@ export async function guardAdminRequest(request: Request): Promise<SessionUser |
   if (user.role !== 'ADMIN') return NextResponse.json({ error: 'Akses ditolak.' }, { status: 403 })
   return user
 }
+
+// Sama seperti guardAdminRequest, tetapi mengembalikan NextResponse saat berhasil sehingga
+// `if (guard instanceof NextResponse) return guard` tetap valid di TypeScript (tidak pernah mengembalikan SessionUser).
+export async function guardAdminOnly(request: Request): Promise<NextResponse> {
+  const guard = await guardAdminRequest(request)
+  if (guard instanceof NextResponse) return guard
+  return NextResponse.json({ ok: true })
+}
