@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { findPaymentMethod, formatIDR, getPaymentInstructions, type PaymentInstruction } from '@/lib/payment-methods'
 
-type SimOrder = { orderNumber: string; total: number; paymentMethodCode: string }
+type SimOrder = { orderNumber: string; total: number; paymentMethodCode: string; payToken?: string }
 type Phase = 'instruction' | 'processing' | 'success' | 'expired'
 
 const PAYMENT_STORAGE_KEY = 'gila-komputer-last-payment'
@@ -79,7 +79,7 @@ export default function PaymentSimulator({ order, onDone }: { order: SimOrder; o
     setStepIndex(0)
     setError('')
     try {
-      const response = await fetch('/api/orders/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderNumber: order.orderNumber }) })
+      const response = await fetch('/api/orders/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderNumber: order.orderNumber, payToken: order.payToken }) })
       const result = await response.json() as { order?: { paymentRef: string; paidAt?: string }; error?: string }
       if (!response.ok || !result.order) throw new Error(result.error ?? 'Pembayaran gagal diproses.')
       // Tahan sejenak agar animasi verifikasi terasa seperti gateway sungguhan.
@@ -98,7 +98,7 @@ export default function PaymentSimulator({ order, onDone }: { order: SimOrder; o
     setError('')
     setCancelling(true)
     try {
-      const response = await fetch('/api/orders/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderNumber: order.orderNumber, action: 'cancel' }) })
+      const response = await fetch('/api/orders/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderNumber: order.orderNumber, action: 'cancel', payToken: order.payToken }) })
       const result = await response.json() as { error?: string }
       if (!response.ok) throw new Error(result.error ?? 'Pesanan tidak dapat dibatalkan.')
       onDone?.()

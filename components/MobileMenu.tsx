@@ -11,7 +11,8 @@ const links = [
   { href: '/products', label: 'Semua produk' },
 ]
 
-export default function MobileMenu() {
+export default function MobileMenu({ account }: { account?: { href: string; label: string } }) {
+  const items = account ? [...links, account] : links
   const [isOpen, setIsOpen] = useState(false)
 
   return <div className="mobile-menu">
@@ -19,7 +20,7 @@ export default function MobileMenu() {
     <AnimatePresence>
       {isOpen && <motion.div className="mobile-menu-panel" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: .22 }}>
         <p className="eyebrow">Gila Komputer / navigasi</p>
-        {links.map((link, index) => <Link href={link.href} key={link.href} onClick={() => setIsOpen(false)}><span>0{index + 1}</span>{link.label}<b>↗</b></Link>)}
+        {items.map((link, index) => <Link href={link.href} key={link.href} onClick={() => setIsOpen(false)}><span>0{index + 1}</span>{link.label}<b>↗</b></Link>)}
       </motion.div>}
     </AnimatePresence>
   </div>

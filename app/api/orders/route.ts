@@ -1,5 +1,9 @@
+import { randomInt } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import { forbiddenOrigin, sameOrigin } from '@/lib/api-guard'
+import { newPayToken } from '@/lib/order-service'
 import { findPaymentMethod } from '@/lib/payment-methods'
 
 type OrderRequestItem = { productId: number; quantity: number }
@@ -21,6 +25,8 @@ const shippingFees = { regular: 25000, express: 50000 }
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 export async function POST(request: Request) {
+  if (!sameOrigin(request)) return forbiddenOrigin()
+
   let body: OrderRequest
 
   try {
@@ -51,6 +57,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Jumlah produk tidak valid.' }, { status: 400 })
   }
 
+  // Checkout tamu tetap diizinkan: bila ada sesi login, pesanan dikaitkan ke akun itu (userId dari sesi, bukan dari klien).
+  const user = await getCurrentUser()
+  const payToken = newPayToken()
+
   const itemMap = new Map<number, number>()
   for (const item of requestedItems) itemMap.set(item.productId, (itemMap.get(item.productId) ?? 0) + item.quantity)
   const productIds = [...itemMap.keys()]
@@ -67,7 +77,7 @@ export async function POST(request: Request) {
       })
       const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
       const shippingFee = shippingFees[body.shippingMethod]
-      const orderNumber = `GK-${Date.now()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`
+      const orderNumber = `GK-${Date.now()}-${randomInt(0, 1000).toString().padStart(3, '0')}`
 
       for (const item of orderItems) {
         const updated = await transaction.product.updateMany({ where: { id: item.productId, stock: { gte: item.quantity }, status: 'ACTIVE' }, data: { stock: { decrement: item.quantity } } })
@@ -88,13 +98,15 @@ export async function POST(request: Request) {
           subtotal,
           total: subtotal + shippingFee,
           paymentMethod: paymentMethod.code,
+          userId: user?.id ?? null,
+          payToken,
           items: { create: orderItems },
         },
         include: { items: true },
       })
     })
 
-    return NextResponse.json({ order: { id: order.id, orderNumber: order.orderNumber, total: order.total, status: order.status, paymentMethod: order.paymentMethod } }, { status: 201 })
+    return NextResponse.json({ order: { id: order.id, orderNumber: order.orderNumber, total: order.total, status: order.status, paymentMethod: order.paymentMethod, payToken } }, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Order tidak dapat dibuat.'
     return NextResponse.json({ error: message }, { status: 400 })
