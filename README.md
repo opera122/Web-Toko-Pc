@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gila Komputer
 
-## Getting Started
+Toko komponen PC berbasis Next.js 16 (App Router), React 19, Tailwind CSS 4, dan Prisma + MySQL/MariaDB.
 
-First, run the development server:
+## Fitur
+
+- Katalog produk, halaman detail, dan **PC Builder** (cek kecocokan socket, tipe RAM, dan daya PSU).
+- Keranjang (tersimpan di browser) dan checkout. **Checkout tamu tetap diizinkan**; bila pembeli login, pesanan otomatis masuk ke akunnya.
+- Pembayaran masih **simulasi** (`app/api/orders/pay`), belum terhubung ke payment gateway.
+- **Daftar & masuk pembeli** (`/daftar`, `/masuk`), halaman akun dengan riwayat pesanan (`/akun`).
+- **Panel admin** (`/admin`): ringkasan, kelola produk (tambah/ubah/nonaktifkan/hapus), kelola pesanan (ubah status, stok otomatis kembali saat dibatalkan), daftar pengguna.
+
+## Menjalankan
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env        # lalu isi DATABASE_URL
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Database.** Pilih salah satu sesuai kondisi Anda:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- *Database sudah ada* (mis. XAMPP + phpMyAdmin, sudah berisi tabel `user`/`session`): jalankan `npx prisma db push`. Perintah ini menyelaraskan tabel dengan `prisma/schema.prisma` (menambah kolom `user.phone` dan `order.payToken`). Jangan pakai `prisma migrate dev` pada database yang tidak dibuat lewat migrasi, karena Prisma akan menawarkan reset yang menghapus data.
+- *Database baru*: `npx prisma migrate deploy`, atau impor `prisma/mysql-schema.sql` lewat phpMyAdmin/mysql.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run db:seed             # isi data produk contoh (opsional)
+ADMIN_EMAIL=admin@toko.id ADMIN_PASSWORD='Rahasia123' ADMIN_NAME='Admin Toko' npm run admin:create
+npm run dev                 # http://localhost:3000
+```
 
-## Learn More
+Di Windows PowerShell, set variabelnya dulu: `$env:ADMIN_EMAIL="admin@toko.id"; $env:ADMIN_PASSWORD="Rahasia123"; npm run admin:create`. Nilai-nilai itu juga boleh ditulis di `.env`. Admin hanya bisa dibuat lewat perintah ini, tidak lewat pendaftaran publik.
 
-To learn more about Next.js, take a look at the following resources:
+Tes logika (validasi, status pesanan, token sesi, pembatas percobaan): `npm test`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cara kerja login
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Sesi disimpan di tabel `Session`. Cookie `gk_session` berisi token acak 256-bit (`HttpOnly`, `SameSite=Lax`, `Secure` di produksi); database hanya menyimpan hash SHA-256-nya. Logout menghapus sesi di server.
+- Role (`PEMBELI` / `ADMIN`) selalu dibaca dari database pada setiap request, jadi perubahan role atau penghapusan akun langsung berlaku.
+- Akses `/admin` dijaga berlapis: `proxy.ts` (pengalihan cepat), `app/admin/layout.tsx` (pemeriksaan role), dan `guardAdminRequest` di setiap route `/api/admin/*`. Non-admin mendapat 404 di halaman dan 403 di API.
+- Pesanan tamu dilindungi `payToken` acak yang hanya dikirim ke browser pembuatnya; pesanan milik akun hanya bisa dibayar atau dibatalkan oleh pemiliknya.
+- Percobaan login dibatasi (5 kegagalan per email+IP per 15 menit). Pembatas ini disimpan di memori server, cukup untuk satu proses; untuk banyak instance pindahkan ke Redis atau tabel database.
+- Cookie `Secure` hanya dikirim lewat HTTPS atau `localhost`. Bila aplikasi produksi diakses lewat HTTP biasa, login tidak akan tersimpan; pasang HTTPS.
 
-## Deploy on Vercel
+## Catatan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Produk berstatus `INACTIVE` disembunyikan dari katalog, detail, dan PC Builder. Produk yang sudah pernah dipesan tidak bisa dihapus, hanya dinonaktifkan.
+- PC Builder mencocokkan nama kategori (`Motherboard`, `RAM`, `Power`, `VGA`) dan nama spesifikasi (`Socket`, `Memory`, `Type`, `TDP`, `Cores`, `Wattage`) secara persis. Jangan ubah ejaannya di panel admin.
+- Gambar produk berupa path file di folder `public/` (mis. `/products/vga.svg`); unggah gambar dari panel admin belum tersedia.

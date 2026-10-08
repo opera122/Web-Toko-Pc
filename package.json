@@ -10,11 +10,13 @@
     "postinstall": "prisma generate || exit 0",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
-
+    "db:studio": "prisma studio",
+    "admin:create": "tsx prisma/create-admin.ts",
+    "test": "tsx --test lib/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.3",
     "framer-motion": "^13.2.0",
     "next": "16.3.4",
     "prisma": "^6.19.0",
